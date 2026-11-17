@@ -57,3 +57,18 @@ def test_clean_text():
     result = clean_text("Hello     world\n\n   This is RAG.")
 
     assert result == "Hello world\n\nThis is RAG."
+    
+    
+def test_punctuation_only_content():
+    assert create_chunks("...") == []
+    assert create_chunks("---") == []
+    assert create_chunks("   ") == []
+    
+def test_meaningful_content_is_preserved():
+    chunks = create_chunks("This is useful content. ...")
+
+    assert chunks
+    assert all(
+        any(char.isalnum() for char in chunk)
+        for chunk in chunks
+    )

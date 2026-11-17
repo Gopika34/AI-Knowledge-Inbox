@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     DEBUG: bool = False
 
     GEMINI_API_KEY: str = ""
-    GEMINI_CHAT_MODEL: str = "gemini-3.8-flash"
+    GEMINI_CHAT_MODEL: str = "gemini-3.1-flash-lite"
     GEMINI_EMBEDDING_MODEL: str = "gemini-embedding-001"
 
     model_config = SettingsConfigDict(

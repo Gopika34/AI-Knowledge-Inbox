@@ -10,7 +10,7 @@ from app.db.database import engine, Base
 # Register models before creating tables
 from app.llm import models
 from app.routes.items import router as items_router
-
+from app.routes.query import router as query_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -49,6 +49,7 @@ app.add_middleware(
 )
 
 app.include_router(items_router)
+app.include_router(query_router)
 
 @app.get("/")
 async def root():

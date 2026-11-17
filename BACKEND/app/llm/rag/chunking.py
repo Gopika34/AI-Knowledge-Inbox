@@ -54,4 +54,19 @@ def create_chunks(
         if end >= len(words):
             break
 
+    chunks = [
+        chunk.strip()
+        for chunk in chunks
+        if is_meaningful_chunk(chunk)
+    ]
+
     return chunks
+
+def is_meaningful_chunk(text: str) -> bool:
+    """
+    Reject chunks that contain no letters or numbers.
+    """
+    if not text or not text.strip():
+        return False
+
+    return bool(re.search(r"[a-zA-Z0-9]", text))
