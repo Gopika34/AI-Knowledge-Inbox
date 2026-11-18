@@ -2,6 +2,7 @@ import logging
 import math
 
 from sqlalchemy.orm import Session, joinedload
+from starlette.concurrency import run_in_threadpool
 
 from app.llm.models import Chunk
 from app.llm.rag.embeddings import generate_embeddings
@@ -58,10 +59,8 @@ async def retrieve_relevant_chunks(
 
         # 2. Load stored chunks and their parent items
 
-        stored_chunks = (
-            db.query(Chunk)
-            .options(joinedload(Chunk.item))
-            .all()
+        stored_chunks = await run_in_threadpool(
+            lambda: db.query(Chunk).options(joinedload(Chunk.item)).all()
         )
 
         if not stored_chunks:

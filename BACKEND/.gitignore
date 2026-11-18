@@ -1,22 +1,23 @@
-# Environment
+# Secrets and local configuration
 .env
+.env.*
+!.env.example
 
 # Python
 __pycache__/
-*.pyc
-venv/
+*.py[cod]
+*.pyo
 .venv/
+venv/
 
-# Database
+# Local databases and test artifacts
 *.db
-
-# Testing
+*.sqlite
+*.sqlite3
 .pytest_cache/
+.coverage
+htmlcov/
 
-# IDE
+# Editors
 .vscode/
 .idea/
-
-# Frontend
-node_modules/
-dist/

@@ -42,14 +42,18 @@ async def ingest(
 def get_items(
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=20, ge=1, le=100),
+    search: str | None = Query(default=None, min_length=1, max_length=200),
     db: Session = Depends(get_db)
 ):
 
-    total = db.query(Item).count()
+    query = db.query(Item)
+    if search and search.strip():
+        term = f"%{search.strip()}%"
+        query = query.filter((Item.title.ilike(term)) | (Item.raw_content.ilike(term)))
+    total = query.count()
 
     items = (
-        db.query(Item)
-        .order_by(Item.created_at.desc())
+        query.order_by(Item.created_at.desc())
         .offset(skip)
         .limit(limit)
         .all()
@@ -105,3 +109,13 @@ def get_item(
         "raw_content": item.raw_content,
         "created_at": item.created_at.isoformat()
     }
+
+@router.delete("/items/{item_id}", status_code=204)
+def delete_item(item_id: int, db: Session = Depends(get_db)):
+    item = db.query(Item).filter(Item.id == item_id).first()
+    if item is None:
+        raise HTTPException(status_code=404, detail="Knowledge item not found")
+    db.delete(item)
+    db.commit()
+    logger.info("Knowledge item deleted: item_id=%s", item_id)
+    return None

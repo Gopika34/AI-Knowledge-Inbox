@@ -1,7 +1,5 @@
 import logging
 
-from google import genai
-
 from app.core.config import settings
 
 
@@ -26,6 +24,8 @@ async def generate_embeddings(
         raise EmbeddingError(
             "Gemini API key is not configured"
         )
+
+    from google import genai
 
     client = genai.Client(
         api_key=settings.GEMINI_API_KEY

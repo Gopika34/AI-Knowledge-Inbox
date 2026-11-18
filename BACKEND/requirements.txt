@@ -1,4 +1,3 @@
-
 fastapi
 uvicorn[standard]
 sqlalchemy
@@ -11,3 +10,4 @@ httpx
 beautifulsoup4
 lxml
 pytest
+# Test client and test runner

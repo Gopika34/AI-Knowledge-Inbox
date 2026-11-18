@@ -1,7 +1,5 @@
 import logging
 
-from google import genai
-
 from app.core.config import settings
 
 
@@ -41,15 +39,15 @@ async def generate_answer(
     retrieved_chunks: list[dict]
 ) -> str:
 
-    if not settings.GEMINI_API_KEY:
-        raise GenerationError(
-            "Gemini API key is not configured"
-        )
-
     if not retrieved_chunks:
         return (
             "I couldn't find relevant information "
             "in your saved knowledge to answer this question."
+        )
+
+    if not settings.GEMINI_API_KEY:
+        raise GenerationError(
+            "Gemini API key is not configured"
         )
 
     context_parts = []
@@ -79,6 +77,8 @@ User question:
 Answer using only the retrieved knowledge.
 Include source references such as [S1] in your answer.
 """
+
+    from google import genai
 
     client = genai.Client(
         api_key=settings.GEMINI_API_KEY

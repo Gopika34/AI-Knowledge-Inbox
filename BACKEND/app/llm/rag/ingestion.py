@@ -2,6 +2,7 @@ import logging
 
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
+from starlette.concurrency import run_in_threadpool
 
 from app.llm.models import Item, Chunk
 from app.schemas.ingest import IngestRequest
@@ -113,63 +114,25 @@ async def ingest_content(
 
     # STEP 5: Store everything in SQLite
 
-    try:
-
-        item = Item(
-            title=title,
-            source_type=request.source_type,
-            source_url=source_url,
-            raw_content=raw_content
-        )
-
+    def persist_records():
+        item = Item(title=title, source_type=request.source_type, source_url=source_url, raw_content=raw_content)
         db.add(item)
-
-        # Get the generated item ID
         db.flush()
-
-        chunk_records = []
-
-        for index, (content, embedding) in enumerate(
-            zip(chunks, embeddings)
-        ):
-
-            chunk_records.append(
-                Chunk(
-                    item_id=item.id,
-                    chunk_index=index,
-                    content=content,
-                    embedding=embedding
-                )
-            )
-
-        db.add_all(chunk_records)
-
+        db.add_all([
+            Chunk(item_id=item.id, chunk_index=index, content=chunk_text, embedding=embedding)
+            for index, (chunk_text, embedding) in enumerate(zip(chunks, embeddings))
+        ])
         db.commit()
-
         db.refresh(item)
+        return {"id": item.id, "title": item.title, "source_type": item.source_type,
+                "source_url": item.source_url, "chunk_count": len(chunks),
+                "message": "Content successfully saved and indexed"}
 
-        logger.info(
-            "Content ingested successfully: item_id=%s chunks=%s",
-            item.id,
-            len(chunks)
-        )
-
-        return {
-            "id": item.id,
-            "title": item.title,
-            "source_type": item.source_type,
-            "source_url": item.source_url,
-            "chunk_count": len(chunks),
-            "message": "Content successfully saved and indexed"
-        }
-
+    try:
+        result = await run_in_threadpool(persist_records)
+        logger.info("Content ingested successfully: item_id=%s chunks=%s", result["id"], len(chunks))
+        return result
     except Exception as exc:
-
-        db.rollback()
-
+        await run_in_threadpool(db.rollback)
         logger.exception("Database ingestion failed")
-
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to save ingested content"
-        ) from exc
+        raise HTTPException(status_code=500, detail="Failed to save ingested content") from exc
