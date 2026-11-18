@@ -1,29 +1,72 @@
 # AI Knowledge Inbox
 
-A focused, single-user knowledge workspace: save text notes or import webpages, then ask natural-language questions and receive answers grounded in retrieved passages with source citations.
+AI Knowledge Inbox is a single-user knowledge workspace for saving text notes and importing public HTML webpages, then asking natural-language questions answered from semantically retrieved passages.
 
-## Stack
-
-- **API:** FastAPI, Pydantic, SQLAlchemy
-- **Storage:** SQLite for item metadata, raw text, chunks and JSON-serialized embeddings
-- **AI:** Gemini Embeddings (`gemini-embedding-001`) and Gemini chat generation
-- **Retrieval:** cosine similarity in Python, top-K ranking with a configurable starting threshold
-- **UI:** React 19 + Vite, Axios and Lucide icons; persistent light/dark themes
+The backend stores original content, chunks, and embeddings. Questions are embedded and compared with stored chunk embeddings; selected passages are sent to Gemini to produce an answer with source references.
 
 ## Features
 
-- Ingest text notes and public HTML webpages (fetched server-side).
-- Preserve the raw extracted content and source metadata.
-- Split content into overlapping chunks and create document embeddings.
-- Search all saved items with server-side pagination.
-- Retrieve semantically relevant chunks and generate a context-grounded answer.
-- Display source snippets and similarity scores beside answers.
-- Delete an item and its associated chunks.
-- Retry a failed question and switch between warm light and dark themes.
+- Save text notes and import public HTTP(S) webpages.
+- Extract readable webpage text and retain source metadata.
+- Split content into overlapping chunks and generate embeddings.
+- Browse, search, paginate, view, and delete saved knowledge items.
+- Ask questions against saved content using semantic retrieval.
+- Return answer text with source snippets and similarity scores.
+- Light/dark theme support in the React interface.
 
-## Run locally (Windows PowerShell)
+## Technology stack
 
-### 1. Backend
+| Layer | Technology |
+|---|---|
+| Frontend | React 19, Vite, Axios, Lucide React |
+| API | FastAPI, Pydantic, Uvicorn |
+| Persistence | SQLAlchemy, SQLite by default |
+| Embeddings | Gemini `gemini-embedding-001`, 768 dimensions |
+| Answer generation | Gemini chat model; default `gemini-3.1-flash-lite` |
+| Web extraction | HTTPX, BeautifulSoup, lxml |
+| Tests | pytest |
+
+## Repository layout
+
+```text
+.
+├── BACKEND/
+│   ├── app/
+│   │   ├── core/config.py
+│   │   ├── db/database.py
+│   │   ├── llm/
+│   │   │   ├── models.py
+│   │   │   └── rag/
+│   │   │       ├── chunking.py
+│   │   │       ├── embeddings.py
+│   │   │       ├── generation.py
+│   │   │       ├── ingestion.py
+│   │   │       └── retrieval.py
+│   │   ├── routes/
+│   │   │   ├── items.py
+│   │   │   └── query.py
+│   │   ├── schemas/
+│   │   └── services/webpage.py
+│   ├── tests/
+│   ├── .env.example
+│   └── requirements.txt
+└── FRONTEND/
+    ├── src/
+    ├── .env.example
+    └── package.json
+```
+
+## Local setup
+
+### Requirements
+
+- Python 3.11 or a compatible supported Python version.
+- Node.js and npm.
+- A Gemini API key.
+
+### 1. Start the backend
+
+Windows PowerShell:
 
 ```powershell
 cd BACKEND
@@ -32,13 +75,19 @@ py -3.11 -m venv .venv
 python -m pip install --upgrade pip
 pip install -r requirements.txt
 Copy-Item .env.example .env
-# Edit .env and set GEMINI_API_KEY
+```
+
+Edit `BACKEND/.env` and set `GEMINI_API_KEY`, then run:
+
+```powershell
 uvicorn app.main:app --reload
 ```
 
-API: `http://127.0.0.1:8000` · Swagger: `http://127.0.0.1:8000/docs`
+The API listens at `http://127.0.0.1:8000`. Interactive API documentation is at `http://127.0.0.1:8000/docs`.
 
-### 2. Frontend (new terminal)
+### 2. Start the frontend
+
+In a second terminal:
 
 ```powershell
 cd FRONTEND
@@ -47,153 +96,85 @@ Copy-Item .env.example .env
 npm run dev
 ```
 
-Open `http://localhost:5173`. Set `VITE_API_BASE_URL` in `FRONTEND/.env` only if the API is hosted somewhere other than `http://127.0.0.1:8000`.
+Open the Vite URL shown in the terminal (normally `http://localhost:5173`). `VITE_API_BASE_URL` defaults to `http://127.0.0.1:8000`.
 
-### 3. Tests and build
+### 3. Run checks
 
 ```powershell
-# Backend
 cd BACKEND
 python -m pytest -q
+```
 
-# Frontend
-cd ..\FRONTEND
+```powershell
+cd FRONTEND
 npm run lint
 npm run build
 ```
 
-## Architecture
+## API overview
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/` | Basic service welcome/status response |
+| `GET` | `/health` | Basic health response |
+| `POST` | `/ingest` | Save a note or import a webpage |
+| `GET` | `/items` | List, search, and paginate items |
+| `GET` | `/items/{item_id}` | Read one item's raw content |
+| `DELETE` | `/items/{item_id}` | Delete an item and its chunks |
+| `POST` | `/query` | Retrieve relevant chunks and generate an answer |
+
+See [API.md](API.md) for request and response contracts.
+
+## Architecture at a glance
 
 ```mermaid
 flowchart TD
-  A[React UI] -->|POST /ingest| B[FastAPI]
-  A -->|GET /items| B
-  A -->|POST /query| B
-  B --> C{Input type}
-  C -->|Note| D[Text cleaning]
-  C -->|URL| E[URL validation + HTML fetch]
-  E --> D
-  D --> F[500-word chunks, 80-word overlap]
-  F --> G[Gemini document embeddings]
-  G --> H[(SQLite: items + chunks + embeddings)]
-  B --> I[Gemini query embedding]
-  I --> J[Cosine similarity + top-K]
-  H --> J
-  J --> K[Gemini grounded answer]
-  K --> L[Answer + cited source snippets]
-  L --> A
+    UI[React application] --> API[FastAPI]
+    API --> ING[Ingestion service]
+    ING --> WEB[HTTPX webpage fetch and HTML extraction]
+    ING --> CHUNK[Text cleaning and chunking]
+    CHUNK --> EMB[Gemini document embeddings]
+    EMB --> DB[(SQLite / configured SQL database)]
+    API --> RET[Retrieval service]
+    RET --> QEMB[Gemini query embedding]
+    DB --> RET
+    RET --> GEN[Gemini answer generation]
+    GEN --> OUT[Answer and source citations]
+    OUT --> UI
 ```
 
-## Core workflow
+## Design choices and trade-offs
 
-### Ingestion
+### Chunking
 
-1. The API validates the request shape and whether it is a note or URL.
-2. For a URL, the backend validates the scheme/host, checks DNS answers against non-public IP ranges, refuses redirects, checks the HTML content type and enforces a 2 MiB response limit.
-3. The readable text is cleaned and split into chunks.
-4. Gemini creates one embedding per chunk using the document retrieval task type.
-5. The raw item and its chunks/embeddings are committed together to SQLite.
+Content is split into 500-word chunks with an 80-word overlap. This is straightforward and preserves some context across boundaries, but can split sentences, tables, or headings.
 
-### Question answering
+### Vector storage and retrieval
 
-1. The question is embedded using Gemini's query retrieval task type.
-2. The backend loads stored chunks, calculates cosine similarity and selects up to `top_k` chunks above the initial `0.60` similarity threshold.
-3. The selected passages and question are sent to Gemini with instructions to use only the retrieved context and treat source text as untrusted data.
-4. The API returns the answer plus source metadata, snippets and similarity scores. If no chunks pass the threshold, it returns an explicit no-context response rather than asking the model to guess.
+Embeddings are stored as JSON in SQL rows. Retrieval loads all chunks and computes cosine similarity in Python. This keeps deployment simple but scales linearly with the number of chunks; there is no vector index.
 
-## Design choices and tradeoffs
+### Database
 
-### Chunking: 500 words with 80-word overlap
+SQLite is the default and is suitable for a small local or single-user installation. `DATABASE_URL` can point SQLAlchemy at another supported database, but production migration, schema management, and database-specific testing are not included here.
 
-A moderate chunk gives the model enough local context without routinely sending an entire document. The overlap reduces the chance that a fact split at a chunk boundary becomes difficult to retrieve. Word-based chunking is simple and predictable, but it can split sentences, headings or tables. A production pipeline could use structure-aware splitting and tune chunk size using a representative evaluation set.
+### Request lifecycle
 
-### SQLite + JSON embeddings + Python cosine similarity
+Ingestion performs webpage fetching, embedding generation, and persistence before returning the response. It is not a background job. Chat history is held in frontend React state and is not persisted by the backend.
 
-This keeps the assessment easy to run and avoids provisioning a separate vector database. It is appropriate for a small, single-user knowledge base. Its cost is that embeddings are not indexed: every query loads and scores all chunks, so latency and memory use grow linearly with corpus size. SQLite JSON storage is not a vector index.
+### Retrieval quality
 
-### Gemini models
+The similarity threshold is currently `0.60`, and the default `top_k` is 5. These are initial settings, not guarantees of relevance; evaluate them with representative questions and documents.
 
-The application uses Gemini for both embedding and generation to keep the integration small. Document and query embeddings use their respective retrieval task types. A low generation temperature encourages consistent, source-grounded answers; the prompt also explicitly prohibits unsupported claims.
+## Current limitations
 
-### Async behavior
+- No authentication, authorization, or per-user data separation.
+- No persistent server-side chat history.
+- No background ingestion queue or job-status API.
+- No vector database or approximate-nearest-neighbor index.
+- Webpage import is limited to HTML/XHTML and does not execute JavaScript.
+- URL validation reduces SSRF risk, but DNS validation is not pinned to the eventual connection (see [SECURITY.md](SECURITY.md)).
+- The health endpoint reports application status; it does not verify Gemini connectivity or database readiness.
 
-URL fetching and Gemini calls use asynchronous I/O. Synchronous SQLAlchemy operations that occur inside async ingestion/retrieval paths are offloaded to a worker thread so they do not directly block the event loop. Ingestion still runs within the request lifecycle: the client waits for fetch, embedding and persistence to finish. Chat history remains in browser React state and is cleared on refresh. For larger workloads, move ingestion to a background worker and persist job status; use async SQLAlchemy consistently or keep database-heavy routes synchronous.
+## Suggested production work
 
-## Security notes and limitations
-
-- URL import accepts only HTTP(S), rejects credentials and localhost, checks resolved IPs for non-public addresses, disables redirects, ignores environment proxy configuration, applies a timeout and caps downloaded bytes.
-- **DNS rebinding limitation:** hostname validation and HTTPX's connection-time DNS resolution are separate operations. This reduces common SSRF risk but does not cryptographically/persistently bind the connection to the validated IP. For production use with untrusted users, route outbound fetches through a trusted egress proxy or implement a transport that pins the validated destination while preserving TLS hostname verification.
-- The service has no authentication or per-user isolation; it is intentionally a single-user assessment app. Do not expose it publicly with private data without adding authentication, authorization and rate limiting.
-- The application has no persistent chat history. The browser's chat messages are transient.
-- Gemini API keys must remain in backend environment variables and must never be placed in frontend variables or committed.
-- The `0.60` retrieval threshold is a starting heuristic, not a universal relevance guarantee. Evaluate it against labelled queries and monitor false positives/negatives.
-
-## API reference
-
-### `POST /ingest` — create a note
-
-Request:
-
-```json
-{
-  "source_type": "note",
-  "title": "Vector search notes",
-  "content": "Embeddings represent text as numeric vectors..."
-}
-```
-
-Success (`201`):
-
-```json
-{
-  "id": 12,
-  "title": "Vector search notes",
-  "source_type": "note",
-  "source_url": null,
-  "chunk_count": 1,
-  "message": "Content successfully saved and indexed"
-}
-```
-
-For a webpage, send `{"source_type":"url","url":"https://example.com/article"}`. `title` is optional for both types.
-
-### `GET /items?skip=0&limit=20&search=vector`
-
-Returns `{ "total": 1, "items": [...] }`. `total` is the count after applying the optional search. `skip` and `limit` support pagination; `search` matches title and raw content.
-
-### `DELETE /items/{item_id}`
-
-Deletes the saved item and its associated chunks. Returns `204 No Content`, or `404` if the item does not exist.
-
-### `POST /query`
-
-Request:
-
-```json
-{ "question": "What do my notes say about vector search?", "top_k": 5 }
-```
-
-Success (`200`) returns `question`, `answer`, `retrieved_count`, and `sources`. Each source includes its item/chunk IDs, title, source type, snippet and similarity score. Citations in answer text use `[S1]`, `[S2]` in the same order as the `sources` array.
-
-### Error behavior
-
-- `422`: invalid input, unsupported URL, unreadable webpage or failed content extraction.
-- `413`: extracted webpage content exceeds the configured chunk limit.
-- `404`: item does not exist.
-- `503`: embedding or answer-generation provider unavailable.
-- `500`: unexpected persistence failure.
-
-## What I would change before production
-
-1. Add authentication, authorization, per-user data ownership and request rate limits.
-2. Use a trusted outbound-fetch proxy or destination-pinned HTTP transport to close the DNS rebinding gap; add a strict allow/deny policy and egress monitoring.
-3. Move to PostgreSQL with pgvector or a managed vector database when corpus size and concurrent users justify it.
-4. Add background ingestion jobs, retries, idempotency and job-status endpoints for slow URL/embedding operations.
-5. Add durable conversation storage if chat history is a product requirement.
-6. Add observability (structured JSON logs, metrics, traces), provider quotas and cost controls.
-7. Add richer evaluation data for retrieval quality, prompt-injection tests and API contract tests in CI.
-8. Consider content deduplication, re-indexing/versioning, deletion audit events and backups.
-
-## Repository hygiene
-
-The SQLite database, `.env`, virtual environments, build output, `node_modules`, Python caches and Git metadata are intentionally excluded from the submission archive. Copy `.env.example` to `.env` and supply your own key locally.
+Add authentication and per-user authorization, robust egress controls for URL imports, migrations, backups, observability, rate limits, provider quotas, retrieval evaluation, and background ingestion before exposing the service to untrusted users.
