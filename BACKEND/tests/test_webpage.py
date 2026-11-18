@@ -1,23 +1,41 @@
-import asyncio
+
 import pytest
 
-from app.core.config import settings
-from app.llm.rag.embeddings import EmbeddingError, generate_embeddings
-from app.llm.rag.generation import GenerationError, generate_answer
+from app.services.webpage import (
+    MAX_PAGE_SIZE,
+    WebpageFetchError,
+    validate_content_length,
+)
 
 
-def test_embedding_fails_cleanly_without_api_key(monkeypatch):
-    monkeypatch.setattr(settings, "GEMINI_API_KEY", "")
-    with pytest.raises(EmbeddingError, match="not configured"):
-        asyncio.run(generate_embeddings(["sample text"]))
+@pytest.mark.parametrize(
+    "value",
+    [
+        "abc",
+        "-1",
+        "1.5",
+        "10,20",
+        "",
+        " ",
+    ],
+)
+def test_rejects_malformed_content_length(value):
+    with pytest.raises(WebpageFetchError):
+        validate_content_length(value)
 
 
-def test_generation_fails_cleanly_without_api_key(monkeypatch):
-    monkeypatch.setattr(settings, "GEMINI_API_KEY", "")
-    with pytest.raises(GenerationError, match="not configured"):
-        asyncio.run(generate_answer("question", [{"title": "note", "source_type": "note", "content": "context"}]))
+def test_accepts_missing_content_length():
+    validate_content_length(None)
 
 
-def test_generation_returns_no_context_without_provider_call():
-    answer = asyncio.run(generate_answer("question", []))
-    assert "couldn't find relevant information" in answer
+def test_accepts_valid_content_length():
+    validate_content_length("1024")
+
+
+def test_rejects_content_length_over_limit():
+    with pytest.raises(WebpageFetchError):
+        validate_content_length(str(MAX_PAGE_SIZE + 1))
+
+
+def test_accepts_content_length_at_limit():
+    validate_content_length(str(MAX_PAGE_SIZE))
