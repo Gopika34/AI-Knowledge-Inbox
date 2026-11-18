@@ -1558,3 +1558,173 @@ textarea {
     transition-duration: 0.01ms !important;
   }
 }
+
+
+
+/* ==========================================================
+   DARK MODE — LIGHT CONTENT SURFACES
+   Keeps the dark shell while making content easier to read.
+   ========================================================== */
+
+:root[data-theme="dark"] {
+
+  /* Dedicated light surface palette */
+  --light-panel: #e8eee3;
+  --light-panel-hover: #dfe8d9;
+  --light-panel-muted: #edf1e9;
+
+  --light-border: #e4e8df;
+  --light-border-strong: #d6ddd0;
+
+  --light-text: #283027;
+  --light-text-muted: #687365;
+  --light-text-faint: #899384;
+
+  --light-accent: #687d60;
+  --light-accent-soft: #e9efe5;
+}
+
+/* ---------- Saved content cards ---------- */
+
+:root[data-theme="dark"] .item-card {
+  background: var(--light-panel);
+  border-color: var(--light-border);
+  color: var(--light-text);
+
+  --text: var(--light-text);
+  --text-muted: var(--light-text-muted);
+  --text-faint: var(--light-text-faint);
+
+  --surface: var(--light-panel);
+  --surface-muted: var(--light-panel-muted);
+  --border: var(--light-border);
+  --border-strong: var(--light-border-strong);
+
+  --accent-soft: var(--light-accent-soft);
+  --accent-text: var(--light-accent);
+}
+
+:root[data-theme="dark"] .item-card:hover {
+  background: var(--light-panel);
+  border-color: var(--light-border-strong);
+}
+
+/* ---------- Search field ---------- */
+
+:root[data-theme="dark"] .search-box {
+  color: var(--light-text-faint);
+}
+
+:root[data-theme="dark"] .search-box input {
+  background: var(--light-panel);
+  color: var(--light-text);
+  border-color: var(--light-border);
+  caret-color: var(--light-accent);
+}
+
+:root[data-theme="dark"] .search-box input::placeholder {
+  color: var(--light-text-faint);
+}
+
+:root[data-theme="dark"] .search-box input:focus {
+  border-color: var(--light-accent);
+  box-shadow: 0 0 0 3px rgba(104, 125, 96, 0.15);
+}
+
+/* ---------- Ask Agent answer panel ---------- */
+
+:root[data-theme="dark"] .answer-card {
+  background: var(--light-panel);
+  border-color: var(--light-border);
+  color: var(--light-text);
+
+  --text: var(--light-text);
+  --text-muted: var(--light-text-muted);
+  --text-faint: var(--light-text-faint);
+
+  --surface: var(--light-panel);
+  --surface-muted: var(--light-panel-muted);
+  --border: var(--light-border);
+  --border-strong: var(--light-border-strong);
+
+  --accent-soft: var(--light-accent-soft);
+  --accent-text: var(--light-accent);
+}
+
+/* ---------- Retrieved source cards ---------- */
+
+:root[data-theme="dark"] .source-card {
+  background: var(--light-panel-muted);
+  border-color: var(--light-border);
+  color: var(--light-text);
+
+  --text: var(--light-text);
+  --text-muted: var(--light-text-muted);
+  --text-faint: var(--light-text-faint);
+
+  --surface: var(--light-panel-muted);
+  --surface-muted: #e9ede5;
+  --border: var(--light-border);
+  --border-strong: var(--light-border-strong);
+
+  --accent-soft: var(--light-accent-soft);
+  --accent-text: var(--light-accent);
+}
+
+/* ---------- Ask Agent input box ---------- */
+
+:root[data-theme="dark"] .chat-input {
+  background: var(--light-panel);
+  border-color: var(--light-border);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+
+  --text: var(--light-text);
+  --text-muted: var(--light-text-muted);
+  --text-faint: var(--light-text-faint);
+
+  --surface: var(--light-panel);
+  --border: var(--light-border);
+  --border-strong: var(--light-border-strong);
+}
+
+:root[data-theme="dark"] .chat-input input {
+  background: transparent;
+  color: var(--light-text);
+  caret-color: var(--light-accent);
+}
+
+:root[data-theme="dark"] .chat-input input::placeholder {
+  color: var(--light-text-faint);
+}
+
+:root[data-theme="dark"] .chat-input:focus-within {
+  border-color: var(--light-accent);
+  box-shadow: 0 0 0 3px rgba(104, 125, 96, 0.15);
+}
+
+/* ---------- Keep the send button consistent ---------- */
+
+:root[data-theme="dark"] .send-button {
+  background: #52674c;
+  color: #ffffff;
+}
+
+:root[data-theme="dark"] .send-button:hover:not(:disabled) {
+  background: #40563b;
+  color: #ffffff;
+}
+
+/* ---------- Citation chips inside light answer panels ---------- */
+
+:root[data-theme="dark"] .answer-card .cite-chip {
+  background: var(--light-accent-soft);
+  color: var(--light-accent);
+}
+
+/* ---------- User message bubble remains sage green ---------- */
+
+:root[data-theme="dark"] .msg-user .bubble {
+  background: #465a40;
+  border-color: #596d52;
+  color: #ffffff;
+}
