@@ -12,9 +12,9 @@ const api = axios.create({
   },
 });
 
-export async function getItems(skip = 0, limit = 20) {
+export async function getItems(skip = 0, limit = 20, search = "") {
   const response = await api.get("/items", {
-    params: { skip, limit },
+    params: { skip, limit, ...(search.trim() ? { search: search.trim() } : {}) },
   });
 
   return response.data;
@@ -37,6 +37,10 @@ export async function addUrl(url) {
   });
 
   return response.data;
+}
+
+export async function deleteItem(itemId) {
+  await api.delete(`/items/${itemId}`);
 }
 
 export async function askQuestion(question, top_k = 5) {

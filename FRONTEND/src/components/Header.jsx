@@ -1,30 +1,38 @@
-import { Search, Sparkles } from "lucide-react";
+import { Layers3 } from "lucide-react";
+import ThemeToggle from "./ThemeToggle";
 
-export default function Header({ activeTab }) {
-  const titles = {
-    inbox: "Your knowledge",
-    add: "Add knowledge",
-    chat: "Ask your knowledge base",
-  };
+const PAGES = {
+  inbox: {
+    eyebrow: "YOUR WORKSPACE",
+    title: "Your library",
+    description: "Everything you've saved, in one searchable place.",
+  },
+  add: {
+    eyebrow: "BUILD YOUR LIBRARY",
+    title: "Add to your knowledge",
+    description: "Save a note or bring in a webpage to make it searchable.",
+  },
+  chat: {
+    eyebrow: "RETRIEVAL ASSISTANT",
+    title: "Ask your knowledge",
+    description: "Get answers grounded in the notes and webpages you've saved.",
+  },
+};
 
-  const descriptions = {
-    inbox: "Everything you've saved, in one place.",
-    add: "Capture useful information for later.",
-    chat: "Get answers grounded in your saved content.",
-  };
+export default function Header({ activeTab, theme, onToggleTheme }) {
+  const page = PAGES[activeTab];
 
   return (
     <header className="header">
-      <div>
-        <p className="breadcrumb">WORKSPACE / KNOWLEDGE</p>
-        <h1>{titles[activeTab]}</h1>
-        <p>{descriptions[activeTab]}</p>
+      <div className="header-text">
+        <span className="header-eyebrow">{page.eyebrow}</span>
+        <h1>{page.title}</h1>
+        <p>{page.description}</p>
       </div>
-
-      <div className="header-status">
-        <span className="status-dot" />
-        <span>AI system ready</span>
-        <Sparkles size={17} />
+      <div className="header-actions">
+        <span className="system-status"><Layers3 size={14} /> Knowledge workspace</span>
+        <span className="header-divider" aria-hidden="true" />
+        <ThemeToggle theme={theme} onToggle={onToggleTheme} />
       </div>
     </header>
   );
